@@ -1,0 +1,68 @@
+# Byte-compiled / cached / temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+env/
+Pipfile.lock
+poetry.lock
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+build/
+dist/
+
+# PyCharm project settings
+.idea/
+*.iml
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Tests and coverage reports
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+*.pycover
+*.hypothesis/
+nosetests.xml
+pytest_cache/
+
+# Temporary files
+*.swp
+*.swo
+*.bak
+
+# Ignore compiled C extensions
+*.so
+
+# Ignore mypy cache
+.mypy_cache/
+
+# Ignore TypeScript build artifacts (if applicable)
+node_modules/
+*.tsbuildinfo
+
+# Ignore SSH keys if stored in project
+*.pem
+
+# Ignore generated docs
+docs/_build/

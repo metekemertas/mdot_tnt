@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mdot-tnt"
+version = "0.2.0"
+authors = [
+    { name = "Mete Kemertas", email = "kemertas@cs.toronto.edu" }
+]
+description = "A fast, GPU-parallel, PyTorch-compatible optimal transport solver."
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+]
+
+[tool.setuptools]
+packages = ["mdot_tnt"]
+
+[project.urls]
+Homepage = "https://github.com/metekemertas/mdot_tnt"
