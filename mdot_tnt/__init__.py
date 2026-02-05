@@ -44,19 +44,31 @@ __all__ = ["solve_OT", "solve_OT_batched"]
 
 def solve_OT(r, c, C, gamma_f=1024.0, drop_tiny=False, return_plan=False, round=True, log=False):
     """
-    Solve the entropic-regularized optimal transport problem. Inputs r, c, C are required to be torch tensors.
-    :param r: n-dimensional row marginal.
-    :param c: m-dimensional column marginal.
-    :param C: n x m cost matrix. Recommended use is to scale the entries to be in [0, 1].
-    :param gamma_f: The temperature (inverse of the regularization weight). For many problems, stable up to 2^18.
-    Higher values return more accurate solutions but take longer to converge. Use double precision if gamma_f large.
-    :param drop_tiny: If either marginal is known to be sparse, set this to True to drop tiny entries for a speedup.
-    If return_plan is True, the returned plan will be in the original dimensions.
-    :param return_plan: If True, return the optimal transport plan rather than the cost.
-    :param round: If True, use the rounding algorithm of Altschuler et al. (2017) to (a) return a feasible plan
-    if return_plan is True and (b) the cost of the rounded plan if return_plan is False.
-    :param log: If True, additionally return a dictionary containing logs of the optimization process.
-    :return: If return_plan is True, return the optimal transport plan as a torch tensor. Otherwise, return the cost.
+    Solve the entropic-regularized optimal transport problem.
+
+    Inputs r, c, C are required to be torch tensors.
+
+    Args:
+        r: Row marginal of shape (n,). Must sum to 1.
+        c: Column marginal of shape (m,). Must sum to 1.
+        C: Cost matrix of shape (n, m). Recommended to scale entries to [0, 1].
+        gamma_f: Temperature (inverse of the regularization weight). For many problems,
+            stable up to 2^18. Higher values return more accurate solutions but take
+            longer to converge. Use double precision if gamma_f is large.
+        drop_tiny: If either marginal is known to be sparse, set this to True to drop
+            tiny entries for a speedup. If return_plan is True, the returned plan will
+            be in the original dimensions.
+        return_plan: If True, return the optimal transport plan rather than the cost.
+        round: If True, use the rounding algorithm of Altschuler et al. (2017) to
+            (a) return a feasible plan if return_plan is True and (b) the cost of
+            the rounded plan if return_plan is False.
+        log: If True, additionally return a dictionary containing logs of the
+            optimization process.
+
+    Returns:
+        Transport cost (scalar tensor) if return_plan is False, or the transport
+        plan of shape (n, m) if return_plan is True. If log is True, returns a
+        tuple of (result, logs_dict).
     """
     assert all(isinstance(x, th.Tensor) for x in [r, c, C]), "r, c, and C must be torch tensors"
     dtype = r.dtype

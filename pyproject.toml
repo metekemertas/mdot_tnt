@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mdot-tnt"
-version = "0.2.0"
+version = "1.0.0"
 authors = [
     { name = "Mete Kemertas", email = "kemertas@cs.toronto.edu" }
 ]
@@ -21,7 +21,7 @@ keywords = [
     "gpu",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
