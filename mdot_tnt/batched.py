@@ -91,7 +91,7 @@ class BatchedTruncatedNewtonProjector:
         # Normalize eps_d to (batch,) tensor
         eps_d = self._to_batch_tensor(eps_d, batch_size)
 
-        logs = {"n_iter": 0, "errs": [], "deltas": []}
+        logs: Dict[str, Any] = {"n_iter": 0, "errs": [], "deltas": []}
 
         # Handle shared vs per-problem cost matrix
         if gamma_C.dim() == 2:
@@ -359,7 +359,7 @@ def _batched_mdot(
     H_min = th.min(H_r, H_c)
     eps_fn = lambda g_: H_min / (g_**p)
 
-    logs = {"proj_logs": [], "gammas": []}
+    logs: Dict[str, Any] = {"proj_logs": [], "gammas": []}
 
     gamma = min(gamma_i, gamma_f)
     gamma_per_problem = th.full((batch_size,), gamma, device=device, dtype=dtype)
@@ -378,7 +378,7 @@ def _batched_mdot(
 
     t = 1
     max_outer_iter = 50
-    done_all = False
+    done_all: Any = False
 
     while active_mask.any() and t < max_outer_iter and not done_all:
         done = th.abs(gamma_per_problem - gamma_f) < 1e-5

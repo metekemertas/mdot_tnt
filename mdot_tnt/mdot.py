@@ -147,7 +147,7 @@ def mdot(
     H_min = th.min(H_r, H_c)
     eps_fn = lambda g_: H_min / (g_**p)
 
-    logs = {
+    logs: Dict[str, Any] = {
         "proj_logs": [],
         "eps": [],
     }

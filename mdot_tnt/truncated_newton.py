@@ -55,7 +55,7 @@ class TruncatedNewtonProjector:
             logs: Dictionary with optimization statistics.
             success: Whether projection converged successfully.
         """
-        logs = {
+        logs: Dict[str, Any] = {
             "errs": [],
             "ls_func_cnt": 0,
             "chisinkhorn_steps": 0,
