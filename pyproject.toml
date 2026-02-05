@@ -54,6 +54,7 @@ mdot_tnt = ["py.typed"]
 
 [project.urls]
 Homepage = "https://github.com/metekemertas/mdot_tnt"
+Documentation = "https://mdot-tnt.readthedocs.io"
 Repository = "https://github.com/metekemertas/mdot_tnt"
 Issues = "https://github.com/metekemertas/mdot_tnt/issues"
 

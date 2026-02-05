@@ -1,5 +1,7 @@
 # MDOT-TNT
 
+<img src="assets/logo.png" alt="MDOT-TNT Logo" width="180" align="right"/>
+
 **A Truncated Newton Method for Optimal Transport**
 
 [![PyPI version](https://badge.fury.io/py/mdot-tnt.svg)](https://badge.fury.io/py/mdot-tnt)
@@ -8,13 +10,15 @@
 
 A fast, GPU-accelerated solver for entropic-regularized optimal transport (OT) problems. MDOT-TNT combines mirror descent with a truncated Newton projection method to achieve high numerical precision while remaining stable under weak regularization.
 
+<br clear="right"/>
+
 ## Features
 
-- **High Precision**: Stable for large regularization parameters (γ up to 2¹⁸), enabling accurate approximations of unregularized OT
+- **High Precision**: Stable under extremely weak regularization  (γ up to 2¹⁸), enabling highly precise approximations of unregularized OT
 - **GPU Accelerated**: Fully compatible with CUDA for fast computation on large problems
 - **Batched Solving**: Solve multiple OT problems simultaneously in batched mode
 - **Memory Efficient**: Log-domain computations and efficient rounding avoid storing full transport plans
-- **PyTorch Native**: Seamless integration with PyTorch workflows, supporting autograd-compatible inputs
+- **PyTorch Native**: Seamless integration with PyTorch, supporting autograd-compatible inputs
 
 ## Installation
 
@@ -123,7 +127,7 @@ Same parameters as `solve_OT`, but with batched inputs:
 1. **Use float64** for `gamma_f > 1024` (automatic conversion with warning)
 2. **Normalize cost matrices** to [0, 1] for numerical stability
 3. **Use batched solver** when solving multiple problems with shared structure
-4. **Increase `gamma_f`** for higher precision (error scales as O(log n / γ))
+4. **Increase `gamma_f`** for higher precision (error scales as O(log n / γ) in the worst case, but can be much better)
 
 ## Citation
 
