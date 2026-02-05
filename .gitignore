@@ -66,3 +66,4 @@ node_modules/
 
 # Ignore generated docs
 docs/_build/
+docs/tutorial/

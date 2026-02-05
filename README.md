@@ -1,61 +1,152 @@
-This is the official repository for the MDOT-TruncatedNewton (or MDOT-TNT)
-algorithm [1] for solving the entropic-regularized optimal transport (OT) problem. 
-In addition to being GPU-friendly, the algorithm is stable under weak regularization and can therefore find highly
-precise approximations of the un-regularized problem's solution quickly. 
+# MDOT-TNT
 
-The current implementation is based on PyTorch and is compatible with both CPU and GPU. PyTorch is the only dependency.
+<img src="assets/logo.png" alt="MDOT-TNT Logo" width="180" align="right"/>
 
+**A Truncated Newton Method for Optimal Transport**
 
-For installation:
-First, install PyTorch following the instructions at https://pytorch.org/get-started/locally/ to select the version that matches your system's configuration.
+[![PyPI version](https://badge.fury.io/py/mdot-tnt.svg)](https://badge.fury.io/py/mdot-tnt)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-Non--Commercial-green.svg)](LICENSE)
+
+A fast, GPU-accelerated solver for entropic-regularized optimal transport (OT) problems. MDOT-TNT combines mirror descent with a truncated Newton projection method to achieve high numerical precision while remaining stable under weak regularization.
+
+<br clear="right"/>
+
+## Features
+
+- **High Precision**: Stable under extremely weak regularization  (γ up to 2¹⁸), enabling highly precise approximations of unregularized OT
+- **GPU Accelerated**: Fully compatible with CUDA for fast computation on large problems
+- **Batched Solving**: Solve multiple OT problems simultaneously in batched mode
+- **Memory Efficient**: Log-domain computations and efficient rounding avoid storing full transport plans
+- **PyTorch Native**: Seamless integration with PyTorch, supporting autograd-compatible inputs
+
+## Installation
+
+**Prerequisites**: Install [PyTorch](https://pytorch.org/get-started/locally/) for your system configuration first.
+
 ```bash
-pip3 install mdot_tnt
+pip install mdot-tnt
 ```
 
-Quickstart guide:
+For development:
+
+```bash
+git clone https://github.com/metekemertas/mdot_tnt.git
+cd mdot_tnt
+pip install -e ".[dev]"
 ```
+
+## Quick Start
+
+### Single Problem
+
+```python
+import torch
 import mdot_tnt
-import torch as th
-device = 'cuda' if th.cuda.is_available() else 'cpu'
-N, M, dim = 100, 200, 128
 
-# Sample row and column marginals from Dirichlet distributions
-r = th.distributions.Dirichlet(th.ones(N)).sample()
-c = th.distributions.Dirichlet(th.ones(M)).sample()
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Cost matrix from pairwise Euclidean distances squared given random points in R^100
-x = th.distributions.MultivariateNormal(th.zeros(dim), th.eye(dim)).sample((N,))
-y = th.distributions.MultivariateNormal(th.zeros(dim), th.eye(dim)).sample((M,))
-C = th.cdist(x, y, p=2) ** 2
-C /= C.max()  # Normalize cost matrix to meet convention.
+# Create marginals (probability distributions)
+n, m = 512, 512
+r = torch.rand(n, device=device, dtype=torch.float64)
+r = r / r.sum()
+c = torch.rand(m, device=device, dtype=torch.float64)
+c = c / c.sum()
 
-# Use double precision for numerical stability in high precision regime.
-r, c, C = r.double().to(device), c.double().to(device), C.double().to(device)
+# Cost matrix (e.g., pairwise distances)
+C = torch.rand(n, m, device=device, dtype=torch.float64)
 
-# Solve OT problem. Increase (decrease) gamma_f for higher (lower) precision.
-# Default is gamma_f=2**10. Expect error of order logn / gamma_f at worst, and possibly lower.
-cost = mdot_tnt.solve_OT(r, c, C, gamma_f=2**10)
+# Solve for optimal transport cost
+cost = mdot_tnt.solve_OT(r, c, C, gamma_f=1024)
 
-# To return a feasible transport plan, use the following:
-transport_plan = mdot_tnt.solve_OT(r, c, C, gamma_f=2**12, return_plan=True)
-
-# In both cases, the default rounding onto the feasible set can be disabled by setting `round=False`.
+# Or get the full transport plan
+plan = mdot_tnt.solve_OT(r, c, C, gamma_f=1024, return_plan=True)
 ```
 
-The code is released under a custom non-commerical use license. If you use our work in
-your research, please consider citing:
+### Batched Solving
 
+When solving multiple OT problems, use the batched solver for significant speedup compared to sequential solution:
+
+```python
+import torch
+import mdot_tnt
+
+device = "cuda"
+batch_size, n, m = 32, 512, 512
+
+# Multiple marginal pairs
+r = torch.rand(batch_size, n, device=device, dtype=torch.float64)
+r = r / r.sum(-1, keepdim=True)
+c = torch.rand(batch_size, m, device=device, dtype=torch.float64)
+c = c / c.sum(-1, keepdim=True)
+
+# Shared cost matrix (or per-problem: shape [batch_size, n, m])
+C = torch.rand(n, m, device=device, dtype=torch.float64)
+
+# Solve all problems at once
+costs = mdot_tnt.solve_OT_batched(r, c, C, gamma_f=1024)  # Returns (batch_size,) tensor
 ```
-@inproceedings{
-kemertas2025a,
-title={A Truncated Newton Method for Optimal Transport},
-author={Mete Kemertas and Amir-massoud Farahmand and Allan Douglas Jepson},
-booktitle={The Thirteenth International Conference on Learning Representations},
-year={2025},
-url={https://openreview.net/forum?id=gWrWUaCbMa}
+
+The batched solver achieves speedup by amortizing GPU synchronization overhead across all problems in the batch.
+
+## API Reference
+
+### `solve_OT`
+
+```python
+mdot_tnt.solve_OT(r, c, C, gamma_f=1024., return_plan=False, round=True, log=False)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `r` | `Tensor` | Row marginal of shape `(n,)`, must sum to 1 |
+| `c` | `Tensor` | Column marginal of shape `(m,)`, must sum to 1 |
+| `C` | `Tensor` | Cost matrix of shape `(n, m)`, recommended to normalize to [0, 1] |
+| `gamma_f` | `float` | Temperature parameter (inverse regularization). Higher = more accurate. Default: 1024 |
+| `return_plan` | `bool` | If True, return transport plan instead of cost |
+| `round` | `bool` | If True, round solution onto feasible set |
+| `log` | `bool` | If True, also return optimization logs |
+
+**Returns**: Transport cost (scalar) or plan `(n, m)`, optionally with logs dict.
+
+### `solve_OT_batched`
+
+```python
+mdot_tnt.solve_OT_batched(r, c, C, gamma_f=1024., return_plan=False, round=True, log=False)
+```
+
+Same parameters as `solve_OT`, but with batched inputs:
+- `r`: Shape `(batch, n)`
+- `c`: Shape `(batch, m)`  
+- `C`: Shape `(n, m)` for shared cost, or `(batch, n, m)` for per-problem costs
+
+**Returns**: Costs `(batch,)` or plans `(batch, n, m)`.
+
+## Performance Tips
+
+1. **Use float64** for `gamma_f > 1024` (automatic conversion with warning)
+2. **Normalize cost matrices** to [0, 1] for numerical stability
+3. **Use batched solver** when solving multiple problems with shared structure
+4. **Increase `gamma_f`** for higher precision (error scales as O(log n / γ) in the worst case, but can be much better)
+
+## Citation
+
+If you use MDOT-TNT in your research, please cite:
+
+```bibtex
+@inproceedings{kemertas2025truncated,
+  title={A Truncated Newton Method for Optimal Transport},
+  author={Kemertas, Mete and Farahmand, Amir-massoud and Jepson, Allan Douglas},
+  booktitle={The Thirteenth International Conference on Learning Representations},
+  year={2025},
+  url={https://openreview.net/forum?id=gWrWUaCbMa}
 }
 ```
 
-For inquiries, email: kemertas [at] cs [dot] toronto [dot] edu
+## License
 
-[1] Mete Kemertas, Amir-massoud Farahmand, Allan Douglas Jepson. "A Truncated Newton Method for Optimal Transport." The Thirteenth International Conference on Learning Representations (ICLR), 2025. https://openreview.net/forum?id=gWrWUaCbMa
+This code is released under a [non-commercial use license](LICENSE). For commercial licensing inquiries, please contact the authors.
+
+## Contact
+
+For questions or issues, please [open an issue](https://github.com/metekemertas/mdot_tnt/issues) or email: kemertas [at] cs [dot] toronto [dot] edu
