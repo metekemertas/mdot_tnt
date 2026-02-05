@@ -10,12 +10,82 @@ authors = [
 ]
 description = "A fast, GPU-parallel, PyTorch-compatible optimal transport solver."
 readme = "README.md"
-requires-python = ">=3.7"
-dependencies = [
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+keywords = [
+    "optimal-transport",
+    "sinkhorn",
+    "entropy-regularization",
+    "machine-learning",
+    "pytorch",
+    "gpu",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.1.0",
+    "pre-commit>=3.0",
+    "numpy>=1.20",
 ]
 
 [tool.setuptools]
 packages = ["mdot_tnt"]
 
+[tool.setuptools.package-data]
+mdot_tnt = ["py.typed"]
+
 [project.urls]
 Homepage = "https://github.com/metekemertas/mdot_tnt"
+Repository = "https://github.com/metekemertas/mdot_tnt"
+Issues = "https://github.com/metekemertas/mdot_tnt/issues"
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E731",   # do not assign a lambda expression, use a def
+    "W291",   # trailing whitespace (in docstrings)
+    "W293",   # blank line contains whitespace (in docstrings)
+    "B008",   # do not perform function calls in argument defaults
+    "B028",   # no explicit stacklevel keyword argument found
+    "SIM108", # use ternary operator instead of if-else block
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mdot_tnt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"

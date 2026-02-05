@@ -1,19 +1,48 @@
 """
-Code for solving the entropic-regularized optimal transport problem via the MDOT-TruncatedNewton (MDOT-TNT)
-method introduced in the paper "A Truncated Newton Method for Optimal Transport"
+MDOT-TNT: A Truncated Newton Method for Optimal Transport
+
+This package provides efficient solvers for the entropic-regularized optimal transport
+problem, as introduced in the paper "A Truncated Newton Method for Optimal Transport"
 by Mete Kemertas, Amir-massoud Farahmand, Allan D. Jepson (ICLR, 2025).
 URL: https://openreview.net/forum?id=gWrWUaCbMa
+
+Main functions:
+    solve_OT: Solve a single OT problem.
+    solve_OT_batched: Solve multiple OT problems simultaneously (5-10x faster).
+
+Example:
+    >>> import torch
+    >>> from mdot_tnt import solve_OT, solve_OT_batched
+    >>>
+    >>> # Single problem
+    >>> r = torch.rand(512, device='cuda', dtype=torch.float64)
+    >>> r = r / r.sum()
+    >>> c = torch.rand(512, device='cuda', dtype=torch.float64)
+    >>> c = c / c.sum()
+    >>> C = torch.rand(512, 512, device='cuda', dtype=torch.float64)
+    >>> cost = solve_OT(r, c, C, gamma_f=1024.)
+    >>>
+    >>> # Batched (32 problems at once)
+    >>> r_batch = torch.rand(32, 512, device='cuda', dtype=torch.float64)
+    >>> r_batch = r_batch / r_batch.sum(-1, keepdim=True)
+    >>> c_batch = torch.rand(32, 512, device='cuda', dtype=torch.float64)
+    >>> c_batch = c_batch / c_batch.sum(-1, keepdim=True)
+    >>> costs = solve_OT_batched(r_batch, c_batch, C, gamma_f=1024.)
 """
 
 import math
-import torch as th
 import warnings
 
+import torch as th
+
+from mdot_tnt.batched import solve_OT_batched
 from mdot_tnt.mdot import mdot, preprocess_marginals
 from mdot_tnt.rounding import round_altschuler, rounded_cost_altschuler
 
+__all__ = ["solve_OT", "solve_OT_batched"]
 
-def solve_OT(r, c, C, gamma_f=1024., drop_tiny=False, return_plan=False, round=True, log=False):
+
+def solve_OT(r, c, C, gamma_f=1024.0, drop_tiny=False, return_plan=False, round=True, log=False):
     """
     Solve the entropic-regularized optimal transport problem. Inputs r, c, C are required to be torch tensors.
     :param r: n-dimensional row marginal.
@@ -32,20 +61,22 @@ def solve_OT(r, c, C, gamma_f=1024., drop_tiny=False, return_plan=False, round=T
     assert all(isinstance(x, th.Tensor) for x in [r, c, C]), "r, c, and C must be torch tensors"
     dtype = r.dtype
     # Require high precision for gamma_f > 2^10
-    if gamma_f > 2 ** 10 and dtype != th.float64:
-        warnings.warn("Switching to double precision for gamma_f > 2^10 during execution. "
-                      "Output will be input dtype: {}.".format(dtype))
+    if gamma_f > 2**10 and dtype != th.float64:
+        warnings.warn(
+            "Switching to double precision for gamma_f > 2^10 during execution. "
+            f"Output will be input dtype: {dtype}."
+        )
         r, c, C = r.double(), c.double(), C.double()
 
     if drop_tiny:
-        drop_lessthan = math.log(min(r.size(-1), c.size(-1))) / (gamma_f ** 2)
+        drop_lessthan = math.log(min(r.size(-1), c.size(-1))) / (gamma_f**2)
         (r_, r_keep), (c_, c_keep), C_ = preprocess_marginals(r, c, C, drop_lessthan)
 
         u_, v_, gamma_f_, k_total, opt_logs = mdot(r_, c_, C_, gamma_f)
 
-        u = -th.ones_like(r) * float('inf')
+        u = -th.ones_like(r) * float("inf")
         u[r_keep] = u_
-        v = -th.ones_like(c) * float('inf')
+        v = -th.ones_like(c) * float("inf")
         v[c_keep] = v_
     else:
         u, v, gamma_f_, k_total, opt_logs = mdot(r, c, C, gamma_f)
