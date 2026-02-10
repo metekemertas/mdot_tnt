@@ -6,7 +6,7 @@
 
 [![PyPI version](https://badge.fury.io/py/mdot-tnt.svg)](https://badge.fury.io/py/mdot-tnt)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-Non--Commercial-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-02B36C)](LICENSE)
 
 A fast, GPU-accelerated solver for entropic-regularized optimal transport (OT) problems. MDOT-TNT combines mirror descent with a truncated Newton projection method to achieve high numerical precision while remaining stable under weak regularization.
 
@@ -145,7 +145,7 @@ If you use MDOT-TNT in your research, please cite:
 
 ## License
 
-This code is released under a [non-commercial use license](LICENSE). For commercial licensing inquiries, please contact the authors.
+This code is released under the [BSD 3-Clause license.](LICENSE).
 
 ## Contact
 
