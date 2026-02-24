@@ -17,7 +17,8 @@ A fast, GPU-accelerated solver for entropic-regularized optimal transport (OT) p
 - **High Precision**: Stable under extremely weak regularization  (γ up to 2¹⁸), enabling highly precise approximations of unregularized OT
 - **GPU Accelerated**: Fully compatible with CUDA for fast computation on large problems
 - **Batched Solving**: Solve multiple OT problems simultaneously in batched mode
-- **Memory Efficient**: Log-domain computations and efficient rounding avoid storing full transport plans
+- **Memory Efficient**: O(nk) working memory mode — never materialise the full cost or transport plan; process columns in blocks of size k
+- **Point Cloud Support**: Pass source/target point clouds directly with a custom cost function; achieves true O(nk + (n+m)d) memory
 - **PyTorch Native**: Seamless integration with PyTorch, supporting autograd-compatible inputs
 
 ## Installation
@@ -89,6 +90,36 @@ costs = mdot_tnt.solve_OT_batched(r, c, C, gamma_f=1024)  # Returns (batch_size,
 
 The batched solver achieves speedup by amortizing GPU synchronization overhead across all problems in the batch.
 
+### Low-Memory / Point Cloud Solving
+
+When `n` or `m` is large, use `solve_OT_lowmem` to avoid materialising the full `n × m` cost matrix. Cost blocks are computed on-the-fly, giving O(nk) working memory (k = `block_size`):
+
+```python
+import torch
+import mdot_tnt
+from mdot_tnt.lowmem import solve_OT_lowmem
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Point cloud mode — no n×m matrix is ever allocated
+n, m, d = 10000, 10000, 64
+X = torch.rand(n, d, device=device, dtype=torch.float64)
+Y = torch.rand(m, d, device=device, dtype=torch.float64)
+r = torch.ones(n, device=device, dtype=torch.float64) / n
+c = torch.ones(m, device=device, dtype=torch.float64) / m
+
+cost = solve_OT_lowmem(r, c, X=X, Y=Y, gamma_f=1024, block_size=512)
+
+# Dense matrix mode — full C provided, but only k columns in memory at once
+C = torch.rand(n, m, device=device, dtype=torch.float64)
+cost = solve_OT_lowmem(r, c, C=C, gamma_f=1024, block_size=512)
+```
+
+The `block_size` parameter controls the memory / speed trade-off:
+- `block_size = m` (default): fastest, equivalent to `solve_OT`
+- `block_size = sqrt(m)`: good balance
+- `block_size = 1`: minimum memory (slowest)
+
 ## API Reference
 
 ### `solve_OT`
@@ -121,6 +152,33 @@ Same parameters as `solve_OT`, but with batched inputs:
 - `C`: Shape `(n, m)` for shared cost, or `(batch, n, m)` for per-problem costs
 
 **Returns**: Costs `(batch,)` or plans `(batch, n, m)`.
+
+### `solve_OT_lowmem`
+
+```python
+mdot_tnt.lowmem.solve_OT_lowmem(r, c, C=None, X=None, Y=None, cost_fn=None,
+                                  gamma_f=1024., block_size=None,
+                                  drop_tiny=False, return_plan=False, round=True, log=False)
+```
+
+Exactly one of `C` or `(X, Y)` must be provided.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `r` | `Tensor` | Row marginal of shape `(n,)`, must sum to 1 |
+| `c` | `Tensor` | Column marginal of shape `(m,)`, must sum to 1 |
+| `C` | `Tensor` | Dense cost matrix `(n, m)`. Mutually exclusive with `X`/`Y` |
+| `X` | `Tensor` | Source points `(n, d)`. Use together with `Y` |
+| `Y` | `Tensor` | Target points `(m, d)`. Use together with `X` |
+| `cost_fn` | `callable` | `(X, Y_block) -> C_block` of shape `(n, k)`. Defaults to squared Euclidean |
+| `gamma_f` | `float` | Temperature parameter. Default: 1024 |
+| `block_size` | `int` | Columns per block (controls memory/speed trade-off). Default: `m` |
+| `drop_tiny` | `bool` | Drop tiny marginal entries for speedup with sparse marginals |
+| `return_plan` | `bool` | If True, return transport plan instead of cost |
+| `round` | `bool` | If True, round solution onto feasible set |
+| `log` | `bool` | If True, also return optimization logs |
+
+**Returns**: Transport cost (scalar) or plan `(n, m)`, optionally with logs dict.
 
 ## Performance Tips
 

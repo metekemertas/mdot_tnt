@@ -8,6 +8,8 @@ Main Functions
 
 .. autofunction:: mdot_tnt.solve_OT_batched
 
+.. autofunction:: mdot_tnt.lowmem.solve_OT_lowmem
+
 Core Modules
 -------------
 
@@ -36,5 +38,12 @@ rounding
 ~~~~~~~~
 
 .. automodule:: mdot_tnt.rounding
+   :members:
+   :undoc-members:
+
+lowmem
+~~~~~~
+
+.. automodule:: mdot_tnt.lowmem
    :members:
    :undoc-members:

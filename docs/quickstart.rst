@@ -56,6 +56,44 @@ compared to sequential solution:
 The batched solver achieves speedup by amortizing GPU synchronization overhead
 across all problems in the batch.
 
+Low-Memory / Point Cloud Solving
+---------------------------------
+
+For large problems where allocating a full ``n × m`` cost matrix is prohibitive,
+use :func:`mdot_tnt.lowmem.solve_OT_lowmem`.  It processes columns in blocks of
+size ``block_size`` (k), keeping only O(nk) entries in working memory at a time.
+
+**Point cloud mode** (true O(nk + (n+m)d) memory — C is never materialised):
+
+.. code-block:: python
+
+   import torch
+   from mdot_tnt.lowmem import solve_OT_lowmem
+
+   device = "cuda" if torch.cuda.is_available() else "cpu"
+
+   n, m, d = 10000, 10000, 64
+   X = torch.rand(n, d, device=device, dtype=torch.float64)
+   Y = torch.rand(m, d, device=device, dtype=torch.float64)
+   r = torch.ones(n, device=device, dtype=torch.float64) / n
+   c = torch.ones(m, device=device, dtype=torch.float64) / m
+
+   # block_size controls the memory / speed trade-off
+   cost = solve_OT_lowmem(r, c, X=X, Y=Y, gamma_f=1024, block_size=512)
+
+**Dense matrix mode** (full C provided, but only k columns loaded at once):
+
+.. code-block:: python
+
+   C = torch.rand(n, m, device=device, dtype=torch.float64)
+   cost = solve_OT_lowmem(r, c, C=C, gamma_f=1024, block_size=512)
+
+Memory / speed trade-off via ``block_size``:
+
+- ``block_size = m`` (default): fastest, same memory as :func:`~mdot_tnt.solve_OT`
+- ``block_size = int(m**0.5)``: good balance
+- ``block_size = 1``: minimum memory (slowest)
+
 Performance Tips
 ----------------
 
