@@ -5,11 +5,10 @@ import torch as th
 
 from mdot_tnt import solve_OT
 from mdot_tnt.lowmem import (
+    euclidean,
     solve_OT_lowmem,
     squared_euclidean,
-    euclidean,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

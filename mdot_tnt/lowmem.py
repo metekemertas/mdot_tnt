@@ -23,7 +23,7 @@ Based on:
 
 import math
 import warnings
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import torch as th
 
@@ -134,7 +134,7 @@ class LowMemoryTruncatedNewtonProjector:
         Returns shape (n,).
         """
         m = v.shape[-1]
-        result = None
+        result: Optional[th.Tensor] = None
         for s, e in self._col_blocks(m):
             partial = th.logsumexp(
                 v[s:e].unsqueeze(-2) - self._gamma_C_block(s, e), dim=-1
@@ -143,6 +143,7 @@ class LowMemoryTruncatedNewtonProjector:
                 result = partial
             else:
                 result = th.logaddexp(result, partial)
+        assert result is not None
         return result
 
     def _blocked_lse_c(self, u: th.Tensor, m: int) -> th.Tensor:
@@ -664,7 +665,7 @@ def blocked_rounded_cost(
 
     # Step 4: cost = sum_{i,j} P_{ij} C_{ij}
     #       = sum_{i,j} exp(u_i + v_j - gamma*C_{ij}) * C_{ij}
-    log_cost = None
+    log_cost: Optional[th.Tensor] = None
     for s, e in col_blocks():
         Cb = cost_block_fn(s, e)
         log_block = (
@@ -677,6 +678,7 @@ def blocked_rounded_cost(
             log_cost = partial
         else:
             log_cost = th.logaddexp(log_cost, partial)
+    assert log_cost is not None
     cost = log_cost.exp()
 
     # Step 5: Rank-1 correction: err_r^T C err_c
@@ -714,7 +716,7 @@ def blocked_transport_cost(
     Returns:
         Transport cost (scalar tensor).
     """
-    log_cost = None
+    log_cost: Optional[th.Tensor] = None
     for s in range(0, m, block_size):
         e = min(s + block_size, m)
         Cb = cost_block_fn(s, e)
@@ -728,6 +730,7 @@ def blocked_transport_cost(
             log_cost = partial
         else:
             log_cost = th.logaddexp(log_cost, partial)
+    assert log_cost is not None
     return log_cost.exp()
 
 
@@ -864,12 +867,12 @@ def _preprocess_marginal(
 def solve_OT_lowmem(
     r: th.Tensor,
     c: th.Tensor,
-    C: th.Tensor = None,
-    X: th.Tensor = None,
-    Y: th.Tensor = None,
-    cost_fn: Callable[[th.Tensor, th.Tensor], th.Tensor] = None,
+    C: Optional[th.Tensor] = None,
+    X: Optional[th.Tensor] = None,
+    Y: Optional[th.Tensor] = None,
+    cost_fn: Optional[Callable[[th.Tensor, th.Tensor], th.Tensor]] = None,
     gamma_f: float = 1024.0,
-    block_size: int = None,
+    block_size: Optional[int] = None,
     drop_tiny: bool = False,
     return_plan: bool = False,
     round: bool = True,
@@ -914,9 +917,7 @@ def solve_OT_lowmem(
     if not (have_C ^ have_XY):
         raise ValueError(
             "Provide exactly one of: C (dense cost matrix) or X and Y "
-            "(point clouds). Got C={}, X={}, Y={}.".format(
-                C is not None, X is not None, Y is not None
-            )
+            f"(point clouds). Got C={C is not None}, X={X is not None}, Y={Y is not None}."
         )
 
     # -- dtype promotion -----------------------------------------------------
@@ -928,18 +929,23 @@ def solve_OT_lowmem(
         )
         r, c = r.double(), c.double()
         if have_C:
+            assert C is not None
             C = C.double()
         else:
+            assert X is not None and Y is not None
             X, Y = X.double(), Y.double()
 
     # -- build cost_block_fn -------------------------------------------------
+    cost_block_fn: CostBlockFn
     if have_C:
+        assert C is not None
         m = C.shape[-1]
-        cost_block_fn: CostBlockFn = lambda s, e: C[:, s:e]
+        cost_block_fn = lambda s, e: C[:, s:e]
     else:
+        assert X is not None and Y is not None
         m = Y.shape[0]
         _cf = cost_fn if cost_fn is not None else squared_euclidean
-        cost_block_fn = lambda s, e, _cf=_cf: _cf(X, Y[s:e])
+        cost_block_fn = lambda s, e: _cf(X, Y[s:e])
 
     if block_size is None:
         block_size = m
@@ -950,13 +956,16 @@ def solve_OT_lowmem(
         r_, r_keep = _preprocess_marginal(r, drop_lessthan)
         c_, c_keep = _preprocess_marginal(c, drop_lessthan)
 
+        cbf_: CostBlockFn
         if have_C:
+            assert C is not None
             C_ = C[r_keep][:, c_keep]
             cbf_ = lambda s, e: C_[:, s:e]
         else:
+            assert X is not None and Y is not None
             X_ = X[r_keep]
             Y_ = Y[c_keep]
-            cbf_ = lambda s, e, _cf=_cf: _cf(X_, Y_[s:e])
+            cbf_ = lambda s, e: _cf(X_, Y_[s:e])
 
         u_, v_, gamma_f_, k_total, opt_logs = mdot_lowmem(
             r_, c_, cbf_, gamma_f, block_size

@@ -37,7 +37,7 @@ def main():
     print(f"max_pixels={args.max_pixels}  block_size={args.block_size}  "
           f"gamma_f={args.gamma_f}  color_space={args.color_space}  device={args.device}")
 
-    print(f"\n1 → 2  (applying target palette of 2.webp onto 1.webp) …")
+    print("\n1 → 2  (applying target palette of 2.webp onto 1.webp) …")
     t0 = time.perf_counter()
     out = transfer_colors(src, tgt, **kwargs)
     elapsed = time.perf_counter() - t0
@@ -46,7 +46,7 @@ def main():
     print(f"  done in {elapsed:.1f}s  →  {out_path}")
 
     if args.both_directions:
-        print(f"\n2 → 1  (applying target palette of 1.webp onto 2.webp) …")
+        print("\n2 → 1  (applying target palette of 1.webp onto 2.webp) …")
         t0 = time.perf_counter()
         out_rev = transfer_colors(tgt, src, **kwargs)
         elapsed = time.perf_counter() - t0

@@ -9,14 +9,13 @@ target colors, producing a smooth, globally-consistent color transfer.
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Literal, Union
 
 import numpy as np
 import torch as th
 from PIL import Image
-
-import warnings
 
 from mdot_tnt.lowmem import mdot_lowmem, squared_euclidean
 
@@ -121,7 +120,7 @@ def transfer_colors(
     block_size: int = 512,
     gamma_f: float = 1024.0,
     color_space: Literal["lab", "rgb"] = "lab",
-    device: Union[str, th.device] = "cpu",
+    device: str | th.device = "cpu",
 ) -> Image.Image:
     """Transfer the color palette of *target* onto the content of *source*.
 
