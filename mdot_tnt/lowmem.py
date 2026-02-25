@@ -177,6 +177,7 @@ class LowMemoryTruncatedNewtonProjector:
         for s, e in self._col_blocks(m):
             Pb = self._P_block(u, v, s, e)
             result += ((Pb**2) / c[s:e].unsqueeze(-2)).sum(-1)
+            del Pb
         return result
 
     def _blocked_PPc_matmul(
@@ -196,6 +197,7 @@ class LowMemoryTruncatedNewtonProjector:
             Pb = self._P_block(u, v, s, e)
             z = (x @ Pb) / c[s:e]  # P_b^T x / c_b, shape (k,)
             result += Pb @ z  # P_b z, shape (n,)
+            del Pb, z
         return result
 
     def _blocked_Pc_x(
@@ -211,6 +213,7 @@ class LowMemoryTruncatedNewtonProjector:
         for s, e in self._col_blocks(m):
             Pb = self._P_block(u, v, s, e)
             result[s:e] = (x @ Pb) / c[s:e]
+            del Pb
         return result
 
     # -- main projection -----------------------------------------------------
@@ -667,7 +670,9 @@ def blocked_rounded_cost(
         log_block = (
             u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma * Cb + Cb.log()
         )
+        del Cb
         partial = th.logsumexp(log_block.reshape(-1), dim=0)
+        del log_block
         if log_cost is None:
             log_cost = partial
         else:
@@ -679,6 +684,7 @@ def blocked_rounded_cost(
     for s, e in col_blocks():
         Cb = cost_block_fn(s, e)
         correction += (err_r @ Cb) @ err_c[s:e]
+        del Cb
     cost += correction.squeeze()
 
     return cost
@@ -715,7 +721,9 @@ def blocked_transport_cost(
         log_block = (
             u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma * Cb + Cb.log()
         )
+        del Cb
         partial = th.logsumexp(log_block.reshape(-1), dim=0)
+        del log_block
         if log_cost is None:
             log_cost = partial
         else:
@@ -978,8 +986,10 @@ def solve_OT_lowmem(
             Pb = th.exp(
                 u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma_f_ * Cb
             )
+            del Cb
             blocks.append(Pb)
         P = th.cat(blocks, dim=-1)
+        del blocks
         if round:
             P = round_altschuler(P, r, c)
         return (P, opt_logs) if log else P
