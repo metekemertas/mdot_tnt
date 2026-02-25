@@ -59,23 +59,24 @@ class TestLowmemDenseC:
     def test_return_plan_shape(self, small_marginals, small_cost_matrix):
         r, c = small_marginals
         n, m = r.shape[0], c.shape[0]
-        P = solve_OT_lowmem(
-            r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4, return_plan=True
-        )
+        P = solve_OT_lowmem(r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4, return_plan=True)
         assert P.shape == (n, m)
 
     def test_plan_is_nonnegative(self, small_marginals, small_cost_matrix):
         r, c = small_marginals
-        P = solve_OT_lowmem(
-            r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4, return_plan=True
-        )
+        P = solve_OT_lowmem(r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4, return_plan=True)
         assert (P >= -1e-10).all()
 
     def test_rounded_plan_satisfies_marginals(self, small_marginals, small_cost_matrix):
         r, c = small_marginals
         P = solve_OT_lowmem(
-            r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4,
-            return_plan=True, round=True,
+            r,
+            c,
+            C=small_cost_matrix,
+            gamma_f=64.0,
+            block_size=4,
+            return_plan=True,
+            round=True,
         )
         assert th.allclose(P.sum(-1), r, atol=1e-6)
         assert th.allclose(P.sum(-2), c, atol=1e-6)
@@ -90,9 +91,7 @@ class TestLowmemDenseC:
 
     def test_unrounded_cost(self, small_marginals, small_cost_matrix):
         r, c = small_marginals
-        cost = solve_OT_lowmem(
-            r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4, round=False
-        )
+        cost = solve_OT_lowmem(r, c, C=small_cost_matrix, gamma_f=64.0, block_size=4, round=False)
         assert th.isfinite(cost) and cost >= 0
 
     def test_deterministic_results(self, small_marginals, small_cost_matrix):
@@ -153,8 +152,15 @@ class TestLowmemPointCloud:
         X, Y = small_point_clouds
         cf = self._normalized_sq_euc(X, Y)
         P = solve_OT_lowmem(
-            r, c, X=X, Y=Y, cost_fn=cf, gamma_f=64.0, block_size=4,
-            return_plan=True, round=True,
+            r,
+            c,
+            X=X,
+            Y=Y,
+            cost_fn=cf,
+            gamma_f=64.0,
+            block_size=4,
+            return_plan=True,
+            round=True,
         )
         assert th.allclose(P.sum(-1), r, atol=1e-6)
         assert th.allclose(P.sum(-2), c, atol=1e-6)
@@ -196,12 +202,8 @@ class TestLowmemConsistency:
         C_norm = C / C_max
         cf = lambda X_, Yb_: squared_euclidean(X_, Yb_) / C_max
 
-        cost_dense = solve_OT_lowmem(
-            r, c, C=C_norm, gamma_f=64.0, block_size=4
-        )
-        cost_pc = solve_OT_lowmem(
-            r, c, X=X, Y=Y, cost_fn=cf, gamma_f=64.0, block_size=4
-        )
+        cost_dense = solve_OT_lowmem(r, c, C=C_norm, gamma_f=64.0, block_size=4)
+        cost_pc = solve_OT_lowmem(r, c, X=X, Y=Y, cost_fn=cf, gamma_f=64.0, block_size=4)
         assert th.allclose(cost_dense, cost_pc, atol=1e-12)
 
     def test_plan_matches_dense(self, small_marginals, small_point_clouds):
@@ -212,11 +214,15 @@ class TestLowmemConsistency:
         C_norm = C / C_max
         cf = lambda X_, Yb_: squared_euclidean(X_, Yb_) / C_max
 
-        P_d = solve_OT_lowmem(
-            r, c, C=C_norm, gamma_f=64.0, block_size=4, return_plan=True
-        )
+        P_d = solve_OT_lowmem(r, c, C=C_norm, gamma_f=64.0, block_size=4, return_plan=True)
         P_pc = solve_OT_lowmem(
-            r, c, X=X, Y=Y, cost_fn=cf, gamma_f=64.0, block_size=4,
+            r,
+            c,
+            X=X,
+            Y=Y,
+            cost_fn=cf,
+            gamma_f=64.0,
+            block_size=4,
             return_plan=True,
         )
         assert th.allclose(P_d, P_pc, atol=1e-12)
@@ -260,9 +266,7 @@ class TestLowmemBlockSizes:
         X, Y = small_point_clouds
         C_max = squared_euclidean(X, Y).max()
         cf = lambda X_, Yb_: squared_euclidean(X_, Yb_) / C_max
-        cost = solve_OT_lowmem(
-            r, c, X=X, Y=Y, cost_fn=cf, gamma_f=64.0, block_size=block_size
-        )
+        cost = solve_OT_lowmem(r, c, X=X, Y=Y, cost_fn=cf, gamma_f=64.0, block_size=block_size)
         assert th.isfinite(cost) and cost >= 0
 
 
@@ -285,19 +289,20 @@ class TestLowmemHighPrecision:
         X, Y = medium_point_clouds
         C_max = squared_euclidean(X, Y).max()
         cf = lambda X_, Yb_: squared_euclidean(X_, Yb_) / C_max
-        cost = solve_OT_lowmem(
-            r, c, X=X, Y=Y, cost_fn=cf, gamma_f=65536.0, block_size=16
-        )
+        cost = solve_OT_lowmem(r, c, X=X, Y=Y, cost_fn=cf, gamma_f=65536.0, block_size=16)
         assert th.isfinite(cost) and cost >= 0
 
-    def test_high_gamma_plan_satisfies_marginals(
-        self, medium_marginals, medium_cost_matrix
-    ):
+    def test_high_gamma_plan_satisfies_marginals(self, medium_marginals, medium_cost_matrix):
         r, c = medium_marginals
         C = medium_cost_matrix
         P = solve_OT_lowmem(
-            r, c, C=C, gamma_f=65536.0, block_size=16,
-            return_plan=True, round=True,
+            r,
+            c,
+            C=C,
+            gamma_f=65536.0,
+            block_size=16,
+            return_plan=True,
+            round=True,
         )
         assert th.allclose(P.sum(-1), r, atol=1e-6)
         assert th.allclose(P.sum(-2), c, atol=1e-6)
@@ -366,9 +371,11 @@ class TestCostFunctions:
         """Solver accepts an arbitrary user-defined cost function."""
         r, c = small_marginals
         X, Y = small_point_clouds
+
         # L1 (Manhattan) distance
         def l1_cost(X_, Yb_):
             return th.cdist(X_.unsqueeze(0), Yb_.unsqueeze(0), p=1.0).squeeze(0)
+
         C_max = l1_cost(X, Y).max()
         cf = lambda X_, Yb_: l1_cost(X_, Yb_) / C_max
 

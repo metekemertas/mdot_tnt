@@ -121,9 +121,7 @@ class LowMemoryTruncatedNewtonProjector:
 
     def _P_block(self, u: th.Tensor, v: th.Tensor, s: int, e: int) -> th.Tensor:
         """Compute P[:, s:e] on-the-fly from dual variables and cost block."""
-        return th.exp(
-            u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - self._gamma_C_block(s, e)
-        )
+        return th.exp(u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - self._gamma_C_block(s, e))
 
     # -- blocked primitives --------------------------------------------------
 
@@ -136,9 +134,7 @@ class LowMemoryTruncatedNewtonProjector:
         m = v.shape[-1]
         result: Optional[th.Tensor] = None
         for s, e in self._col_blocks(m):
-            partial = th.logsumexp(
-                v[s:e].unsqueeze(-2) - self._gamma_C_block(s, e), dim=-1
-            )
+            partial = th.logsumexp(v[s:e].unsqueeze(-2) - self._gamma_C_block(s, e), dim=-1)
             if result is None:
                 result = partial
             else:
@@ -157,15 +153,14 @@ class LowMemoryTruncatedNewtonProjector:
         """
         results = []
         for s, e in self._col_blocks(m):
-            results.append(
-                th.logsumexp(
-                    u.unsqueeze(-1) - self._gamma_C_block(s, e), dim=-2
-                )
-            )
+            results.append(th.logsumexp(u.unsqueeze(-1) - self._gamma_C_block(s, e), dim=-2))
         return th.cat(results, dim=-1)
 
     def _blocked_diag_PPc(
-        self, u: th.Tensor, v: th.Tensor, c: th.Tensor,
+        self,
+        u: th.Tensor,
+        v: th.Tensor,
+        c: th.Tensor,
     ) -> th.Tensor:
         """
         Compute diag(P diag(1/c) P^T) = ((P**2) / c[None, :]).sum(-1)
@@ -182,7 +177,11 @@ class LowMemoryTruncatedNewtonProjector:
         return result
 
     def _blocked_PPc_matmul(
-        self, u: th.Tensor, v: th.Tensor, c: th.Tensor, x: th.Tensor,
+        self,
+        u: th.Tensor,
+        v: th.Tensor,
+        c: th.Tensor,
+        x: th.Tensor,
     ) -> th.Tensor:
         """
         P diag(1/c) P^T x in a single pass over column blocks.
@@ -202,7 +201,11 @@ class LowMemoryTruncatedNewtonProjector:
         return result
 
     def _blocked_Pc_x(
-        self, u: th.Tensor, v: th.Tensor, c: th.Tensor, x: th.Tensor,
+        self,
+        u: th.Tensor,
+        v: th.Tensor,
+        c: th.Tensor,
+        x: th.Tensor,
     ) -> th.Tensor:
         """
         diag(1/c) P^T x in column blocks.
@@ -271,9 +274,7 @@ class LowMemoryTruncatedNewtonProjector:
         log_r_P = u + self.LSE_r(v)
         k = 8
 
-        u, v, log_r_P, err, k_ = self.chi_sinkhorn(
-            u, v, log_r, log_c, log_r_P, eps_d ** (2 / 5)
-        )
+        u, v, log_r_P, err, k_ = self.chi_sinkhorn(u, v, log_r, log_c, log_r_P, eps_d ** (2 / 5))
         r_P = log_r_P.exp()
         logs["errs"].append(err)
         logs["chisinkhorn_steps"] = k_
@@ -294,7 +295,15 @@ class LowMemoryTruncatedNewtonProjector:
             k += 8
 
             delta_u, delta_v, matmul_cnt, rho, pcg_success = self.newton_solve(
-                u, v, c, diag_PPc, grad_k, r_P, err, beta, eta_k,
+                u,
+                v,
+                c,
+                diag_PPc,
+                grad_k,
+                r_P,
+                err,
+                beta,
+                eta_k,
                 maxIter=5000,
             )
             if not pcg_success:
@@ -324,10 +333,7 @@ class LowMemoryTruncatedNewtonProjector:
                 warnings.warn(msg)
                 return u, v, logs, success_fn(err)
 
-            armijo = (
-                log_c_P.exp().sum(-1, keepdim=True) - 1
-                <= 0.99 * alpha * linear_decr
-            )
+            armijo = log_c_P.exp().sum(-1, keepdim=True) - 1 <= 0.99 * alpha * linear_decr
             while not armijo:
                 alpha *= 0.5
                 if alpha < 1e-9:
@@ -339,15 +345,10 @@ class LowMemoryTruncatedNewtonProjector:
                     warnings.warn(msg)
                     return u, v, logs, success_fn(err)
 
-                log_c_P = (
-                    v + alpha * delta_v + self.LSE_c(u + alpha * delta_u)
-                )
+                log_c_P = v + alpha * delta_v + self.LSE_c(u + alpha * delta_u)
                 k += 4
                 logs["ls_func_cnt"] += 4
-                armijo = (
-                    log_c_P.exp().sum(-1, keepdim=True) - 1
-                    <= 0.99 * alpha * linear_decr
-                )
+                armijo = log_c_P.exp().sum(-1, keepdim=True) - 1 <= 0.99 * alpha * linear_decr
 
             u += alpha * delta_u
             v += alpha * delta_v
@@ -369,10 +370,7 @@ class LowMemoryTruncatedNewtonProjector:
 
             logs["errs"].append(err)
             logs["deltas"].append(
-                th.min(
-                    (logs["errs"][-2] - err_before_sk)
-                    / ((1 - eta_k) * logs["errs"][-2])
-                ).item()
+                th.min((logs["errs"][-2] - err_before_sk) / ((1 - eta_k) * logs["errs"][-2])).item()
             )
 
         if u.isnan().any() or v.isnan().any():
@@ -418,9 +416,7 @@ class LowMemoryTruncatedNewtonProjector:
             k += 8
 
         if k >= maxOps:
-            raise ValueError(
-                f"Chi-Sinkhorn did not converge in maxIter={maxOps} steps"
-            )
+            raise ValueError(f"Chi-Sinkhorn did not converge in maxIter={maxOps} steps")
 
         return u, v, log_r_P, err, k
 
@@ -478,14 +474,10 @@ class LowMemoryTruncatedNewtonProjector:
         success = True
 
         while best_r_true_norm > tol:
-            best_sol[r_true_norm < best_r_true_norm] = x[
-                r_true_norm < best_r_true_norm
-            ]
+            best_sol[r_true_norm < best_r_true_norm] = x[r_true_norm < best_r_true_norm]
             best_r_true_norm = th.min(r_true_norm, best_r_true_norm)
 
-            rho[r_true_norm > tol] = (
-                1.0 - (1.0 - rho[r_true_norm > tol]) * 0.25
-            )
+            rho[r_true_norm > tol] = 1.0 - (1.0 - rho[r_true_norm > tol]) * 0.25
             M_rho = M(rho)
 
             if matmul_cnt > 0:
@@ -508,9 +500,7 @@ class LowMemoryTruncatedNewtonProjector:
             ry_old = (res * y).sum(-1, keepdim=True)
 
             r_norm = res.norm(p=1, dim=-1)
-            while (r_norm > 0.5 * (1 - beta) * tol)[
-                best_r_true_norm > tol
-            ].any():
+            while (r_norm > 0.5 * (1 - beta) * tol)[best_r_true_norm > tol].any():
                 PPc_p = mml(p)
                 matmul_cnt += 2
                 Fr_p = (r_P * p) - rho * PPc_p
@@ -545,15 +535,11 @@ class LowMemoryTruncatedNewtonProjector:
                 r_P_x = r_P * x
                 res_true = r_P_x - PPc_x + grad_k
                 r_true_norm = res_true.norm(p=1, dim=-1)
-                best_sol[r_true_norm < best_r_true_norm] = x[
-                    r_true_norm < best_r_true_norm
-                ]
+                best_sol[r_true_norm < best_r_true_norm] = x[r_true_norm < best_r_true_norm]
                 best_r_true_norm = th.min(r_true_norm, best_r_true_norm)
 
                 linear_decr = (x * -grad_k).sum(-1)
-                if (best_r_true_norm <= tol).all() and (
-                    linear_decr > 0
-                ).all():
+                if (best_r_true_norm <= tol).all() and (linear_decr > 0).all():
                     done = True
                     success = True
                     break
@@ -625,9 +611,7 @@ def blocked_rounded_cost(
         result = None
         for s, e in col_blocks():
             Cb = cost_block_fn(s, e)
-            partial = th.logsumexp(
-                v[s:e].unsqueeze(-2) - gamma * Cb, dim=-1
-            )
+            partial = th.logsumexp(v[s:e].unsqueeze(-2) - gamma * Cb, dim=-1)
             if result is None:
                 result = partial
             else:
@@ -638,9 +622,7 @@ def blocked_rounded_cost(
         parts = []
         for s, e in col_blocks():
             Cb = cost_block_fn(s, e)
-            parts.append(
-                th.logsumexp(u.unsqueeze(-1) - gamma * Cb, dim=-2)
-            )
+            parts.append(th.logsumexp(u.unsqueeze(-1) - gamma * Cb, dim=-2))
         return th.cat(parts, dim=-1)
 
     # Step 1: Row rounding
@@ -668,9 +650,7 @@ def blocked_rounded_cost(
     log_cost: Optional[th.Tensor] = None
     for s, e in col_blocks():
         Cb = cost_block_fn(s, e)
-        log_block = (
-            u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma * Cb + Cb.log()
-        )
+        log_block = u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma * Cb + Cb.log()
         del Cb
         partial = th.logsumexp(log_block.reshape(-1), dim=0)
         del log_block
@@ -720,9 +700,7 @@ def blocked_transport_cost(
     for s in range(0, m, block_size):
         e = min(s + block_size, m)
         Cb = cost_block_fn(s, e)
-        log_block = (
-            u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma * Cb + Cb.log()
-        )
+        log_block = u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma * Cb + Cb.log()
         del Cb
         partial = th.logsumexp(log_block.reshape(-1), dim=0)
         del log_block
@@ -811,8 +789,7 @@ def mdot_lowmem(
         logs["proj_logs"].append(proj_log)
         if not success:
             warnings.warn(
-                "Projection failed. Returning result at the last "
-                f"temperature: {1 / gammas[-2]:.4e}"
+                f"Projection failed. Returning result at the last temperature: {1 / gammas[-2]:.4e}"
             )
             u_cur = u_prev.clone()
             v_cur = v_prev.clone()
@@ -823,12 +800,8 @@ def mdot_lowmem(
         gamma = min(gamma * q, gamma_f)
 
         if not done:
-            u_init = u_cur + (u_cur - u_prev) * (gamma - gammas[-1]) / (
-                gammas[-1] - gammas[-2]
-            )
-            v_init = v_cur + (v_cur - v_prev) * (gamma - gammas[-1]) / (
-                gammas[-1] - gammas[-2]
-            )
+            u_init = u_cur + (u_cur - u_prev) * (gamma - gammas[-1]) / (gammas[-1] - gammas[-2])
+            v_init = v_cur + (v_cur - v_prev) * (gamma - gammas[-1]) / (gammas[-1] - gammas[-2])
 
         gammas.append(gamma)
         t += 1
@@ -846,9 +819,7 @@ def mdot_lowmem(
 # ---------------------------------------------------------------------------
 
 
-def _preprocess_marginal(
-    m: th.Tensor, eps: float
-) -> Tuple[th.Tensor, th.Tensor]:
+def _preprocess_marginal(m: th.Tensor, eps: float) -> Tuple[th.Tensor, th.Tensor]:
     """Drop smallest entries whose cumulative mass is below ``eps``."""
     m_sorted, m_idx = th.sort(m, dim=-1, descending=False)
     m_cumsum = th.cumsum(m_sorted, dim=-1)
@@ -967,18 +938,14 @@ def solve_OT_lowmem(
             Y_ = Y[c_keep]
             cbf_ = lambda s, e: _cf(X_, Y_[s:e])
 
-        u_, v_, gamma_f_, k_total, opt_logs = mdot_lowmem(
-            r_, c_, cbf_, gamma_f, block_size
-        )
+        u_, v_, gamma_f_, k_total, opt_logs = mdot_lowmem(r_, c_, cbf_, gamma_f, block_size)
 
         u = -th.ones_like(r) * float("inf")
         u[r_keep] = u_
         v = -th.ones_like(c) * float("inf")
         v[c_keep] = v_
     else:
-        u, v, gamma_f_, k_total, opt_logs = mdot_lowmem(
-            r, c, cost_block_fn, gamma_f, block_size
-        )
+        u, v, gamma_f_, k_total, opt_logs = mdot_lowmem(r, c, cost_block_fn, gamma_f, block_size)
 
     u, v = u.to(dtype), v.to(dtype)
 
@@ -992,9 +959,7 @@ def solve_OT_lowmem(
         for s in range(0, m, block_size):
             e = min(s + block_size, m)
             Cb = cost_block_fn(s, e)
-            Pb = th.exp(
-                u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma_f_ * Cb
-            )
+            Pb = th.exp(u.unsqueeze(-1) + v[s:e].unsqueeze(-2) - gamma_f_ * Cb)
             del Cb
             blocks.append(Pb)
         P = th.cat(blocks, dim=-1)
@@ -1004,11 +969,7 @@ def solve_OT_lowmem(
         return (P, opt_logs) if log else P
     else:
         if round:
-            cost = blocked_rounded_cost(
-                u, v, r, c, cost_block_fn, m, gamma_f_, block_size
-            )
+            cost = blocked_rounded_cost(u, v, r, c, cost_block_fn, m, gamma_f_, block_size)
         else:
-            cost = blocked_transport_cost(
-                u, v, cost_block_fn, m, gamma_f_, block_size
-            )
+            cost = blocked_transport_cost(u, v, cost_block_fn, m, gamma_f_, block_size)
         return (cost, opt_logs) if log else cost

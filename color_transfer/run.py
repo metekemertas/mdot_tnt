@@ -15,12 +15,35 @@ _DEFAULT_DEVICE = "cuda" if th.cuda.is_available() else "cpu"
 
 def main():
     parser = argparse.ArgumentParser(description="OT color transfer (low-memory point-cloud mode)")
-    parser.add_argument("--max-pixels", type=int, default=8192, help="Max pixels per image (default: 8192)")
-    parser.add_argument("--block-size", type=int, default=512, help="Column block size for the low-memory solver (default: 512)")
-    parser.add_argument("--gamma-f", type=float, default=1024.0, help="OT temperature / inverse regularization (default: 1024)")
-    parser.add_argument("--color-space", choices=["lab", "rgb"], default="lab", help="Working color space (default: lab)")
-    parser.add_argument("--device", default=_DEFAULT_DEVICE, help=f"Torch device (default: {_DEFAULT_DEVICE})")
-    parser.add_argument("--both-directions", action="store_true", help="Also transfer in the reverse direction (2 → 1)")
+    parser.add_argument(
+        "--max-pixels", type=int, default=8192, help="Max pixels per image (default: 8192)"
+    )
+    parser.add_argument(
+        "--block-size",
+        type=int,
+        default=512,
+        help="Column block size for the low-memory solver (default: 512)",
+    )
+    parser.add_argument(
+        "--gamma-f",
+        type=float,
+        default=1024.0,
+        help="OT temperature / inverse regularization (default: 1024)",
+    )
+    parser.add_argument(
+        "--color-space",
+        choices=["lab", "rgb"],
+        default="lab",
+        help="Working color space (default: lab)",
+    )
+    parser.add_argument(
+        "--device", default=_DEFAULT_DEVICE, help=f"Torch device (default: {_DEFAULT_DEVICE})"
+    )
+    parser.add_argument(
+        "--both-directions",
+        action="store_true",
+        help="Also transfer in the reverse direction (2 → 1)",
+    )
     args = parser.parse_args()
 
     src = ASSETS / "1.webp"
@@ -34,8 +57,10 @@ def main():
         device=args.device,
     )
 
-    print(f"max_pixels={args.max_pixels}  block_size={args.block_size}  "
-          f"gamma_f={args.gamma_f}  color_space={args.color_space}  device={args.device}")
+    print(
+        f"max_pixels={args.max_pixels}  block_size={args.block_size}  "
+        f"gamma_f={args.gamma_f}  color_space={args.color_space}  device={args.device}"
+    )
 
     print("\n1 → 2  (applying target palette of 2.webp onto 1.webp) …")
     t0 = time.perf_counter()
