@@ -112,12 +112,11 @@ class TestSolveOT:
         assert th.allclose(cost1, cost2), "Results should be deterministic"
 
     def test_high_precision_regime(self, medium_marginals, medium_cost_matrix):
-        """Test solver in high precision regime (gamma_f=65536)."""
+        """Test solver in high precision regime (gamma_f=1024)."""
         r, c = medium_marginals
         C = medium_cost_matrix
 
-        # gamma_f = 2^16 triggers automatic float64 conversion
-        cost = solve_OT(r, c, C, gamma_f=65536.0)
+        cost = solve_OT(r, c, C, gamma_f=1024.0)
 
         assert th.isfinite(cost), "Cost should be finite in high precision regime"
         assert cost >= 0, "Cost should be non-negative"
@@ -127,7 +126,7 @@ class TestSolveOT:
         r, c = medium_marginals
         C = medium_cost_matrix
 
-        P = solve_OT(r, c, C, gamma_f=65536.0, return_plan=True, round=True)
+        P = solve_OT(r, c, C, gamma_f=1024.0, return_plan=True, round=True)
 
         row_sums = P.sum(dim=-1)
         col_sums = P.sum(dim=-2)

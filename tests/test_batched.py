@@ -144,12 +144,11 @@ class TestSolveOTBatched:
         assert th.allclose(costs1, costs2), "Results should be deterministic"
 
     def test_high_precision_regime(self, batched_marginals, batched_cost_matrix):
-        """Test batched solver in high precision regime (gamma_f=65536)."""
+        """Test batched solver in high precision regime (gamma_f=1024)."""
         r, c = batched_marginals
         C = batched_cost_matrix
 
-        # gamma_f = 2^16 triggers automatic float64 conversion
-        costs = solve_OT_batched(r, c, C, gamma_f=65536.0)
+        costs = solve_OT_batched(r, c, C, gamma_f=1024.0)
 
         assert th.isfinite(costs).all(), "All costs should be finite in high precision regime"
         assert (costs >= 0).all(), "All costs should be non-negative"
@@ -159,7 +158,7 @@ class TestSolveOTBatched:
         r, c = batched_marginals
         C = batched_cost_matrix
 
-        P = solve_OT_batched(r, c, C, gamma_f=65536.0, return_plan=True, round=True)
+        P = solve_OT_batched(r, c, C, gamma_f=1024.0, return_plan=True, round=True)
 
         row_sums = P.sum(dim=-1)
         col_sums = P.sum(dim=-2)

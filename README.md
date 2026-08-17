@@ -94,7 +94,7 @@ The batched solver achieves speedup by amortizing GPU synchronization overhead a
 ### `solve_OT`
 
 ```python
-mdot_tnt.solve_OT(r, c, C, gamma_f=1024., return_plan=False, round=True, log=False)
+mdot_tnt.solve_OT(r, c, C, gamma_f=1024.0, return_plan=False, round=True, log=False)
 ```
 
 | Parameter | Type | Description |
@@ -112,7 +112,7 @@ mdot_tnt.solve_OT(r, c, C, gamma_f=1024., return_plan=False, round=True, log=Fal
 ### `solve_OT_batched`
 
 ```python
-mdot_tnt.solve_OT_batched(r, c, C, gamma_f=1024., return_plan=False, round=True, log=False)
+mdot_tnt.solve_OT_batched(r, c, C, gamma_f=1024.0, return_plan=False, round=True, log=False)
 ```
 
 Same parameters as `solve_OT`, but with batched inputs:
